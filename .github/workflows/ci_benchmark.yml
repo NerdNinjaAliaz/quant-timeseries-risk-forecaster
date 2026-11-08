@@ -1,0 +1,30 @@
+name: Quant Risk Engine CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify syntax and leak-free data pipeline
+        run: |
+          python -m py_compile app.py run_experiment.py src/data_pipeline.py src/models.py src/backtest.py
+          python -c "from pathlib import Path; from src.data_pipeline import load_and_prepare_data; p = load_and_prepare_data(Path('data/BTC-USD.csv')); assert p.X_train.shape[1:] == (28, 5), 'Invalid window shape'"
