@@ -19,12 +19,12 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Run zero-dependency functional & quantitative test suite
+        run: |
+          python -m unittest discover -s tests -v
+
+      - name: Install ML dependencies & verify live PyTorch tensors
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Verify syntax and leak-free data pipeline
-        run: |
-          python -m py_compile app.py run_experiment.py src/data_pipeline.py src/models.py src/backtest.py
-          python -c "from pathlib import Path; from src.data_pipeline import load_and_prepare_data; p = load_and_prepare_data(Path('data/BTC-USD.csv')); assert p.X_train.shape[1:] == (28, 5), 'Invalid window shape'"
+          python -c "from pathlib import Path; from src.data_pipeline import load_and_prepare_data; from src.models import build_model; p = load_and_prepare_data(Path('data/BTC-USD.csv')); assert p.X_train.shape == (1901, 28, 5); assert p.X_test.shape == (505, 28, 5); m = build_model('GRU'); print('Verified PyTorch GRU params:', sum(x.numel() for x in m.parameters()))"
